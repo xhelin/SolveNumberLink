@@ -98,8 +98,8 @@ struct Box
       for (int i = 0; i < box_indexes_.size(); ++i)
       {
         Box& b = Box::Get(box_indexes_[i]);
-        b.color_ = c;
         b.v_color_idx_ = -1;
+        b.SetColor(c);
       };
       box_indexes_.clear();
     };
@@ -314,7 +314,7 @@ struct Box
       for (int j = 0; j < Box::g_width; ++j)
       {
         Box& b = Get(j, i);
-        if (!b.IsFriendFull() || b.HasColor())
+        if (!b.IsFriendFull() || !b.HasColor())
           return false;
       }
     }
@@ -336,7 +336,10 @@ struct Box
         if (g_virtualcolors[i].TestChangeToRealColor())
           changed = true;
         if (g_virtualcolors[i].possible_colors_.size() == 0)
+        {
+          //cout << __LINE__ << ": return false" << endl;
           return false;
+        }
       }
       for (int i = 0; i < g_height; ++i)
       {
@@ -356,6 +359,20 @@ struct Box
 
           for (int k = 0; k < current.neighbors_.size(); ++k)
           {
+            /*
+            bool already_friend = false;
+            for (int m = 0; m < current.friends_.size(); ++m)
+            {
+              if (current.friends_[m] == current.neighbors_[m])
+              {
+                already_friend = true;
+                break;
+              }
+            }
+            if (already_friend)
+              continue;
+              */
+
             Box& temp = Get(current.neighbors_[k]);
             if (temp.IsFriendFull())
             {
@@ -363,6 +380,11 @@ struct Box
               {
                 changed = true;
               }
+              continue;
+            }
+
+            if (temp.HasColor() && current.HasColor() && temp.color_ != current.color_)
+            {
               continue;
             }
 
@@ -383,16 +405,25 @@ struct Box
           }
 
           if ((int)availables.size() < current.NeedFriendNum())
+          {
+            //cout << __LINE__ << ": return false" << endl;
             return false;
+          }
 
           if (current.IsEnd())
           {
             if (uncolored_boxes.empty())
+            {
+              //cout << __LINE__ << ": return false" << endl;
               return false;
+            }
             else if(uncolored_boxes.size() == 1)
             {
               if (!MakeFriend(current.index_, uncolored_boxes[0]))
+              {
+                //cout << __LINE__ << ": return false" << endl;
                 return false;
+              }
               changed = true;
             }
           }
@@ -401,12 +432,16 @@ struct Box
             if (current.HasColor())
             {
               if (same_colored_boxes.size() > 2)
+              {
+                //cout << __LINE__ << ": return false" << endl;
                 return false;
+              }
 
               for (int m = 0; m < same_colored_boxes.size(); ++m)
               {
                 if (!MakeFriend(current.index_, same_colored_boxes[m]))
                 {
+                  //cout << __LINE__ << ": return false" << endl;
                   return false;
                 }
               }
@@ -420,6 +455,7 @@ struct Box
                 {
                   if (!MakeFriend(current.index_, uncolored_boxes[m]))
                   {
+                    //cout << __LINE__ << ": return false" << endl;
                     return false;
                   }
                 }
@@ -427,6 +463,7 @@ struct Box
               }
               else if (uncolored_boxes.size() < current.NeedFriendNum())
               {
+                //cout << __LINE__ << ": return false. current = " << (int)current.index_.x_ << ":" << (int)current.index_.y_ << endl;
                 return false;
               }
             }
@@ -438,6 +475,7 @@ struct Box
                 {
                   if (!MakeFriend(current.index_, availables[m]))
                   {
+                    //cout << __LINE__ << ": return false" << endl;
                     return false;
                   }
                 }
@@ -488,7 +526,6 @@ struct Box
             changed = true;
         }
       }
-
 
     }  // while (changed)
     return true;
@@ -542,13 +579,18 @@ vector<Box::VirtualColor> Box::g_virtualcolors;
 
 bool Search(const Box::BoxIndex& index)
 {
-
+  //cout << __LINE__ << endl;
   if (Box::MakeStable() == false)
+  {
+    //cout << __LINE__ << ": return false" << endl;
     return false;
-
-  Box::PrintStat(cout);
+  }
+  //Box::PrintStat(cout);
   if (Box::IsOk())
+  {
+    //cout << __LINE__ << ": return true" << endl;
     return true;
+  }
 
   for (int i = index.y_; i < Box::g_height; ++i)
   {
@@ -558,44 +600,53 @@ bool Search(const Box::BoxIndex& index)
         continue;
       else
       {
-       for (int k = 0; k < Box::VirtualColor::g_color_status.size(); ++k)
-       {
-        if (Box::VirtualColor::g_color_status[k]) {
-          Box& b = Box::Get(j, i);
-          if (b.GetVirtualColor().IsPossible(Box::VirtualColor::g_color_status[k]))
+        //cout << "( " << i << " , " << j << " )" << endl;
+        for (int k = 0; k < Box::VirtualColor::g_color_status.size(); ++k)
+        {
+          if (Box::VirtualColor::g_color_status[k])
           {
-            vector<vector<Box> > temp_boxes = Box::g_boxes;
-            vector<Box::VirtualColor> temp_vc = Box::g_virtualcolors;
-            vector<int> temp_color_status = Box::VirtualColor::g_color_status;
-
-            b.GetVirtualColor().ChangeToRealColor(k);
-
-            Box::BoxIndex next_index;
-            if (j + 1 == Box::g_width)
+            Box& b = Box::Get(j, i);
+            if (b.GetVirtualColor().IsPossible(Box::VirtualColor::g_color_status[k]))
             {
-              next_index.x_= 0;
-              next_index.y_ = i + 1;
-            }
-            else
-            {
-              next_index.x_ = j + 1;
-              next_index.y_ = i;
-            }
+              //cout << "Guessing " << "( " << i << " , " << j << " )" << "color is " << k << endl;
+              vector<vector<Box> > temp_boxes = Box::g_boxes;
+              vector<Box::VirtualColor> temp_vc = Box::g_virtualcolors;
+              vector<int> temp_color_status = Box::VirtualColor::g_color_status;
 
-            if (Search(next_index))
-              return true;
-            Box::g_boxes = temp_boxes;
-            Box::g_virtualcolors = temp_vc;
-            Box::VirtualColor::g_color_status = temp_color_status;
+              b.GetVirtualColor().ChangeToRealColor(k);
+
+              Box::BoxIndex next_index;
+              if (j + 1 == Box::g_width)
+              {
+                next_index.x_= 0;
+                next_index.y_ = i + 1;
+              }
+              else
+              {
+                next_index.x_ = j + 1;
+                next_index.y_ = i;
+              }
+
+              if (Search(next_index))
+              {
+                //cout << __LINE__ << ": return true" << endl;
+                return true;
+              }
+              else
+              {
+                //cout << "Guessing " << "( " << i << " , " << j << " )" << "color is " << k << " failed."<< endl;
+              }
+              Box::g_boxes = temp_boxes;
+              Box::g_virtualcolors = temp_vc;
+              Box::VirtualColor::g_color_status = temp_color_status;
+            }
           }
         }
+        break;
       }
     }
   }
   return false;
-}
-
-  return 0;
 }
 
 
@@ -649,5 +700,7 @@ int main(int argc, char const *argv[])
   // Box::PrintStat(cout);
 
   Search(Box::BoxIndex());
+  cout << "exit..." << endl;
+  Box::PrintStat(cout);
   return 0;
 }
