@@ -33,6 +33,7 @@ struct Box
     {
       return x_ == index.x_ && y_ == index.y_;
     }
+
     char x_;
     char y_;
   };
@@ -100,6 +101,7 @@ struct Box
         b.color_ = c;
         b.v_color_idx_ = -1;
       };
+      box_indexes_.clear();
     };
 
     bool TestChangeToRealColor()
@@ -110,6 +112,11 @@ struct Box
       ChangeToRealColor(*possible_colors_.begin());
       return true;
     };
+
+    bool IsPossible(char color)
+    {
+      return possible_colors_.find(color) != possible_colors_.end();
+    }
 
     void AddBox(const BoxIndex& b_index)
     {
@@ -128,13 +135,15 @@ struct Box
       return possible_colors_.size();
     };
 
-    void SetImpossibleColor(char color)
+    bool SetImpossibleColor(char color)
     {
       set<char>::iterator iter = possible_colors_.find(color);
       if (iter != possible_colors_.end())
       {
         possible_colors_.erase(iter);
+        return true;
       }
+      return false;
     }
 
     set<char> possible_colors_;
@@ -252,39 +261,39 @@ struct Box
     v_color_idx_ = -1;
   }
 
-  bool MakeFriend(Box& b)
+  static bool MakeFriend(const BoxIndex& index1, const BoxIndex& index2)
   {
-    return MakeFriend(b.index_);
-  }
-
-  bool MakeFriend(const BoxIndex& f_index)
-  {
-    for (int i = 0; i < friends_.size(); ++i)
+    Box& b1 = Get(index1);
+    Box& b2 = Get(index2);
+    for (int i = 0; i < b1.friends_.size(); ++i)
     {
-      if (friends_[i] == f_index)
+      if (b1.friends_[i] == b2.index_)
       {
         return true;
       }
     }
 
-    Box& b = Get(f_index);
-
-    if (HasColor() && b.HasColor()) {
-      if (b.color_ != color_)
+    if (b1.HasColor() && b2.HasColor())
+    {
+      if (b1.color_ != b2.color_)
         return false;
       else
         return true;
     }
-    else if (HasColor() && !b.HasColor())
-      b.SetColor(color_);
-    else if (!HasColor() && b.HasColor())
-      SetColor(b.color_);
+
+    b1.friends_.push_back(b2.index_);
+    b2.friends_.push_back(b1.index_);
+
+    if (b1.HasColor() && !b2.HasColor())
+    {
+      b2.SetColor(b1.color_);
+    }
+    else if (!b1.HasColor() && b2.HasColor())
+    {
+      b1.SetColor(b2.color_);
+    }
     else
-      VirtualColor::Merge(v_color_idx_, b.v_color_idx_);
-
-    friends_.push_back(f_index);
-    b.friends_.push_back(index_);
-
+      VirtualColor::Merge(b1.v_color_idx_, b2.v_color_idx_);
     return true;
   }
 
@@ -298,13 +307,26 @@ struct Box
     return g_boxes[index.y_][index.x_];
   }
 
+  static bool IsOk()
+  {
+    for (int i = 0; i < Box::g_height; ++i)
+    {
+      for (int j = 0; j < Box::g_width; ++j)
+      {
+        Box& b = Get(j, i);
+        if (!b.IsFriendFull() || b.HasColor())
+          return false;
+      }
+    }
+    return true;
+  }
+
   static bool MakeStable()
   {
     bool changed = true;
 
     while (changed)
     {
-      Box::PrintStat(cout);
       changed = false;
 
       for (int i = 0; i < g_virtualcolors.size(); ++i)
@@ -336,7 +358,13 @@ struct Box
           {
             Box& temp = Get(current.neighbors_[k]);
             if (temp.IsFriendFull())
+            {
+              if (temp.HasColor() && !current.HasColor() && current.GetVirtualColor().SetImpossibleColor(temp.color_))
+              {
+                changed = true;
+              }
               continue;
+            }
 
             availables.push_back(temp.index_);
             if (!temp.HasColor())
@@ -363,7 +391,8 @@ struct Box
               return false;
             else if(uncolored_boxes.size() == 1)
             {
-              current.MakeFriend(Get(uncolored_boxes[0]));
+              if (!MakeFriend(current.index_, uncolored_boxes[0]))
+                return false;
               changed = true;
             }
           }
@@ -376,7 +405,7 @@ struct Box
 
               for (int m = 0; m < same_colored_boxes.size(); ++m)
               {
-                if (!current.MakeFriend(Get(same_colored_boxes[m])))
+                if (!MakeFriend(current.index_, same_colored_boxes[m]))
                 {
                   return false;
                 }
@@ -389,7 +418,7 @@ struct Box
               {
                 for (int m = 0; m < uncolored_boxes.size(); ++m)
                 {
-                  if (!current.MakeFriend(Get(uncolored_boxes[i])))
+                  if (!MakeFriend(current.index_, uncolored_boxes[m]))
                   {
                     return false;
                   }
@@ -407,7 +436,7 @@ struct Box
               {
                 for (int m = 0; m < availables.size(); ++m)
                 {
-                  if (!current.MakeFriend(Get(availables[m])))
+                  if (!MakeFriend(current.index_, availables[m]))
                   {
                     return false;
                   }
@@ -421,8 +450,6 @@ struct Box
 
       }  // for (int i = 0; i < H; ++i)
 
-
-      Box::PrintStat(cout);
       for (int i = 0; i < g_height - 1; ++i)
       {
         for (int j = 0; j < g_width - 1; ++j)
@@ -457,8 +484,8 @@ struct Box
           if (vcolor == -1 || color == 0)
             continue;
 
-          g_virtualcolors[vcolor].SetImpossibleColor(color);
-          changed = true;
+          if (g_virtualcolors[vcolor].SetImpossibleColor(color))
+            changed = true;
         }
       }
 
@@ -512,9 +539,69 @@ vector<vector<Box> > Box::g_boxes;
 vector<Box::VirtualColor> Box::g_virtualcolors;
 
 
+
+bool Search(const Box::BoxIndex& index)
+{
+
+  if (Box::MakeStable() == false)
+    return false;
+
+  Box::PrintStat(cout);
+  if (Box::IsOk())
+    return true;
+
+  for (int i = index.y_; i < Box::g_height; ++i)
+  {
+    for (int j = index.x_; j < Box::g_width; ++j)
+    {
+      if (Box::Get(j, i).HasColor())
+        continue;
+      else
+      {
+       for (int k = 0; k < Box::VirtualColor::g_color_status.size(); ++k)
+       {
+        if (Box::VirtualColor::g_color_status[k]) {
+          Box& b = Box::Get(j, i);
+          if (b.GetVirtualColor().IsPossible(Box::VirtualColor::g_color_status[k]))
+          {
+            vector<vector<Box> > temp_boxes = Box::g_boxes;
+            vector<Box::VirtualColor> temp_vc = Box::g_virtualcolors;
+            vector<int> temp_color_status = Box::VirtualColor::g_color_status;
+
+            b.GetVirtualColor().ChangeToRealColor(k);
+
+            Box::BoxIndex next_index;
+            if (j + 1 == Box::g_width)
+            {
+              next_index.x_= 0;
+              next_index.y_ = i + 1;
+            }
+            else
+            {
+              next_index.x_ = j + 1;
+              next_index.y_ = i;
+            }
+
+            if (Search(next_index))
+              return true;
+            Box::g_boxes = temp_boxes;
+            Box::g_virtualcolors = temp_vc;
+            Box::VirtualColor::g_color_status = temp_color_status;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+  return 0;
+}
+
+
 int main(int argc, char const *argv[])
 {
-  ifstream fin("numberlink.in");
+  ifstream fin(argv[1]);
   ofstream fout("numberlink.out");
 
   int height, width, color_num;
@@ -557,10 +644,10 @@ int main(int argc, char const *argv[])
 
   Box::g_virtualcolors.reserve(Box::g_height * Box::g_width);
 
-  //Box::PrintStat(cout);
-  Box::MakeStable();
-  cout << "exit..." << endl;
-  Box::PrintStat(cout);
+  // Box::MakeStable();
+  // cout << "exit..." << endl;
+  // Box::PrintStat(cout);
 
+  Search(Box::BoxIndex());
   return 0;
 }
