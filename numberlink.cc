@@ -25,7 +25,8 @@ struct Box
   {
     BoxIndex(): x_(0), y_(0) { };
     BoxIndex(char x, char y): x_(x), y_(y) { };
-    inline bool operator==(const BoxIndex& index) const {
+    inline bool operator==(const BoxIndex& index) const
+    {
       return x_ == index.x_ && y_ == index.y_;
     }
     char x_, y_;
@@ -35,8 +36,10 @@ struct Box
   {
     VirtualColor()
     {
-      for (int i = 0; i < g_color_status.size(); ++i) {
-        if (g_color_status[i]) {
+      for (int i = 0; i < g_color_status.size(); ++i)
+      {
+        if (g_color_status[i])
+        {
           possible_colors_.insert(i);
         };
       }
@@ -47,7 +50,8 @@ struct Box
       g_color_num = color_num;
       g_color_status.reserve(color_num);
       g_color_status.push_back(0);
-      for (int i = 0; i < color_num; ++i) {
+      for (int i = 0; i < color_num; ++i)
+      {
         g_color_status.push_back(1);
       };
       return;
@@ -66,14 +70,17 @@ struct Box
 
       for (set<char>::iterator iter = vc1.possible_colors_.begin();
            iter != vc1.possible_colors_.end();
-           ++iter) {
-        if (vc2.possible_colors_.find(*iter) != vc2.possible_colors_.end()) {
+           ++iter)
+      {
+        if (vc2.possible_colors_.find(*iter) != vc2.possible_colors_.end())
+        {
           s.insert(*iter);
         }
       }
       vc1.possible_colors_.swap(s);
 
-      for (int i = 0; i < vc2.box_indexes_.size(); ++i) {
+      for (int i = 0; i < vc2.box_indexes_.size(); ++i)
+      {
         Box::Get(vc2.box_indexes_[i]).SetVColor(vc_index1);
       }
 
@@ -83,7 +90,8 @@ struct Box
 
     void ChangeToRealColor(int c)
     {
-      for (int i = 0; i < box_indexes_.size(); ++i) {
+      for (int i = 0; i < box_indexes_.size(); ++i)
+      {
         Box& b = Box::Get(box_indexes_[i]);
         b.v_color_idx_ = -1;
         b.SetColor(c);
@@ -93,7 +101,8 @@ struct Box
 
     bool TestChangeToRealColor()
     {
-      if (PossibleColorNum() != 1) {
+      if (PossibleColorNum() != 1)
+      {
         return false;
       }
       ChangeToRealColor(*possible_colors_.begin());
@@ -114,7 +123,8 @@ struct Box
     {
       for (int i = 1; i < g_color_status.size(); ++i)
       {
-        if (!g_color_status[i]) {
+        if (!g_color_status[i])
+        {
           possible_colors_.erase(i);
         }
       };
@@ -124,7 +134,8 @@ struct Box
     bool SetImpossibleColor(char color)
     {
       set<char>::iterator iter = possible_colors_.find(color);
-      if (iter != possible_colors_.end()) {
+      if (iter != possible_colors_.end())
+      {
         possible_colors_.erase(iter);
         return true;
       }
@@ -151,10 +162,12 @@ struct Box
   {
     neighbors_.reserve(4);
     friends_.reserve(2);
-    if (clr != 0) {
+    if (clr != 0)
+    {
       is_end_ = true;
     }
-    else {
+    else
+    {
       VirtualColor vc = VirtualColor();
       vc.AddBox(index_);
       Box::g_virtualcolors.push_back(vc);
@@ -205,7 +218,8 @@ struct Box
         continue;
 
       Box& b = Box::Get(neighbors_[i]);
-      if (b.v_color_idx_ == vc) {
+      if (b.v_color_idx_ == vc)
+      {
         friends_.push_back(neighbors_[i]);
         b.friends_.push_back(index_);
       }
@@ -216,20 +230,23 @@ struct Box
   {
     color_ = c;
 
-    for (int i = 0; i < this->neighbors_.size(); ++i) {
+    for (int i = 0; i < this->neighbors_.size(); ++i)
+    {
 
       bool already_friend = std::find(friends_.begin(), friends_.end(), neighbors_[i]) != friends_.end();
       if (already_friend)
         continue;
 
       Box& b = Box::Get(this->neighbors_[i]);
-      if (b.color_ == c) {
+      if (b.color_ == c)
+      {
         b.friends_.push_back(index_);
         friends_.push_back(b.index_);
       }
     }
 
-    if (v_color_idx_ != -1) {
+    if (v_color_idx_ != -1)
+    {
       g_virtualcolors[v_color_idx_].ChangeToRealColor(c);
     }
 
@@ -269,7 +286,8 @@ struct Box
     if (already_friend)
       return true;
 
-    if (b1.HasColor() && b2.HasColor()) {
+    if (b1.HasColor() && b2.HasColor())
+    {
       if (b1.color_ != b2.color_)
         return false;
       else
@@ -279,13 +297,16 @@ struct Box
     b1.friends_.push_back(b2.index_);
     b2.friends_.push_back(b1.index_);
 
-    if (b1.HasColor() && !b2.HasColor()) {
+    if (b1.HasColor() && !b2.HasColor())
+    {
       b2.SetColor(b1.color_);
     }
-    else if (!b1.HasColor() && b2.HasColor()) {
+    else if (!b1.HasColor() && b2.HasColor())
+    {
       b1.SetColor(b2.color_);
     }
-    else {
+    else
+    {
       VirtualColor::Merge(b1.v_color_idx_, b2.v_color_idx_);
     }
     return true;
@@ -303,8 +324,10 @@ struct Box
 
   static bool IsOk()
   {
-    for (int i = 0; i < Box::g_height; ++i) {
-      for (int j = 0; j < Box::g_width; ++j) {
+    for (int i = 0; i < Box::g_height; ++i)
+    {
+      for (int j = 0; j < Box::g_width; ++j)
+      {
         Box& b = Get(j, i);
         if (!b.IsFriendFull() || !b.HasColor())
           return false;
@@ -316,22 +339,27 @@ struct Box
   static bool MakeStable()
   {
     bool changed = true;
-    while (changed) {
+    while (changed)
+    {
       changed = false;
 
-      for (int i = 0; i < g_virtualcolors.size(); ++i) {
+      for (int i = 0; i < g_virtualcolors.size(); ++i)
+      {
         if (g_virtualcolors[i].box_indexes_.empty())
           continue;
         if (g_virtualcolors[i].TestChangeToRealColor())
           changed = true;
-        if (g_virtualcolors[i].possible_colors_.size() == 0) {
+        if (g_virtualcolors[i].possible_colors_.size() == 0)
+        {
           cout << __LINE__ << ": return false" << endl;
           return false;
         }
       }
 
-      for (int i = 0; i < g_height; ++i) {
-        for (int j = 0; j < g_width; ++j) {
+      for (int i = 0; i < g_height; ++i)
+      {
+        for (int j = 0; j < g_width; ++j)
+        {
           Box& current = Get(j, i);
           if (current.IsFriendFull())
             continue;
@@ -344,7 +372,8 @@ struct Box
           availables.reserve(4);
           colored_boxes.reserve(4);
 
-          for (int k = 0; k < current.neighbors_.size(); ++k) {
+          for (int k = 0; k < current.neighbors_.size(); ++k)
+          {
             bool already_friend = std::find(current.friends_.begin(), current.friends_.end(), current.neighbors_[k]) != current.friends_.end();
             if (already_friend)
               continue;
@@ -354,23 +383,28 @@ struct Box
             if (is_enemy)
               continue;
 
-            if (neighbor.IsFriendFull()) {
-              if (neighbor.HasColor() && !current.HasColor() && current.GetVirtualColor().SetImpossibleColor(neighbor.color_)) {
+            if (neighbor.IsFriendFull())
+            {
+              if (neighbor.HasColor() && !current.HasColor() && current.GetVirtualColor().SetImpossibleColor(neighbor.color_))
+              {
                 changed = true;
               }
               continue;
             }
 
-            if (neighbor.HasColor() && current.HasColor() && neighbor.color_ != current.color_) {
+            if (neighbor.HasColor() && current.HasColor() && neighbor.color_ != current.color_)
+            {
               continue;
             }
 
-            if (neighbor.HasColor() && !current.HasColor() && !current.GetVirtualColor().IsPossible(neighbor.color_)) {
+            if (neighbor.HasColor() && !current.HasColor() && !current.GetVirtualColor().IsPossible(neighbor.color_))
+            {
               continue;
             }
 
             availables.push_back(neighbor.index_);
-            if (!neighbor.HasColor()) {
+            if (!neighbor.HasColor())
+            {
               uncolored_boxes.push_back(neighbor.index_);
               continue;
             }
@@ -384,33 +418,43 @@ struct Box
               same_colored_boxes.push_back(neighbor.index_);
           }
 
-          if ((int)availables.size() < current.NeedFriendNum()) {
+          if ((int)availables.size() < current.NeedFriendNum())
+          {
             cout << __LINE__ << ": return false" << endl;
             return false;
           }
 
-          if (current.IsEnd()) {
-            if (uncolored_boxes.empty()) {
+          if (current.IsEnd())
+          {
+            if (uncolored_boxes.empty())
+            {
               cout << __LINE__ << ": return false" << endl;
               return false;
             }
-            else if(uncolored_boxes.size() == 1) {
-              if (!MakeFriend(current.index_, uncolored_boxes[0])) {
+            else if(uncolored_boxes.size() == 1)
+            {
+              if (!MakeFriend(current.index_, uncolored_boxes[0]))
+              {
                 cout << __LINE__ << ": return false" << endl;
                 return false;
               }
               changed = true;
             }
           }
-          else {
-            if (current.HasColor()) {
-              if (same_colored_boxes.size() > 2) {
+          else
+          {
+            if (current.HasColor())
+            {
+              if (same_colored_boxes.size() > 2)
+              {
                 cout << __LINE__ << ": return false" << endl;
                 return false;
               }
 
-              for (int m = 0; m < same_colored_boxes.size(); ++m) {
-                if (!MakeFriend(current.index_, same_colored_boxes[m])) {
+              for (int m = 0; m < same_colored_boxes.size(); ++m)
+              {
+                if (!MakeFriend(current.index_, same_colored_boxes[m]))
+                {
                   cout << __LINE__ << ": return false" << endl;
                   return false;
                 }
@@ -419,24 +463,32 @@ struct Box
               if (current.IsFriendFull())
                 continue;
 
-              if (current.NeedFriendNum() == uncolored_boxes .size()) {
-                for (int m = 0; m < uncolored_boxes.size(); ++m) {
-                  if (!MakeFriend(current.index_, uncolored_boxes[m])) {
+              if (current.NeedFriendNum() == uncolored_boxes .size())
+              {
+                for (int m = 0; m < uncolored_boxes.size(); ++m)
+                {
+                  if (!MakeFriend(current.index_, uncolored_boxes[m]))
+                  {
                     cout << __LINE__ << ": return false" << endl;
                     return false;
                   }
                 }
                 changed = true;
               }
-              else if (uncolored_boxes.size() < current.NeedFriendNum()) {
+              else if (uncolored_boxes.size() < current.NeedFriendNum())
+              {
                 cout << __LINE__ << ": return false. current = " << (int)current.index_.x_ << ":" << (int)current.index_.y_ << endl;
                 return false;
               }
             }
-            else {
-              if (availables.size() == current.NeedFriendNum()) {
-                for (int m = 0; m < availables.size(); ++m) {
-                  if (!MakeFriend(current.index_, availables[m])) {
+            else
+            {
+              if (availables.size() == current.NeedFriendNum())
+              {
+                for (int m = 0; m < availables.size(); ++m)
+                {
+                  if (!MakeFriend(current.index_, availables[m]))
+                  {
                     cout << __LINE__ << ": return false" << endl;
                     return false;
                   }
@@ -450,8 +502,10 @@ struct Box
 
       }  // for (int i = 0; i < H; ++i)
 
-      for (int i = 0; i < g_height - 1; ++i) {
-        for (int j = 0; j < g_width - 1; ++j) {
+      for (int i = 0; i < g_height - 1; ++i)
+      {
+        for (int j = 0; j < g_width - 1; ++j)
+        {
           vector<BoxIndex> vboxes;
           vboxes.push_back(BoxIndex(j, i));
           vboxes.push_back(BoxIndex(j+1, i));
@@ -465,23 +519,29 @@ struct Box
           group1.push_back(BoxIndex(j, i));
           Box& group1_sample = Get(j, i);
           Box* group2_sample = NULL;
-          for (int k = 1; k < vboxes.size(); ++k) {
+          for (int k = 1; k < vboxes.size(); ++k)
+          {
             Box& b = Get(vboxes[k]);
 
             if ((b.color_ && b.color_ == group1_sample.color_)
-                || (b.v_color_idx_ != -1 && b.v_color_idx_ == group1_sample.v_color_idx_)) {
+                || (b.v_color_idx_ != -1 && b.v_color_idx_ == group1_sample.v_color_idx_))
+            {
               group1.push_back(vboxes[k]);
             }
-            else if (!group2_sample) {
+            else if (!group2_sample)
+            {
               group2.push_back(vboxes[k]);
               group2_sample = &Get(vboxes[k]);
             }
-            else {
+            else
+            {
               if ((b.color_ && b.color_ == group2_sample->color_)
-                  || (b.v_color_idx_ != -1 && b.v_color_idx_ == group2_sample->v_color_idx_)) {
+                  || (b.v_color_idx_ != -1 && b.v_color_idx_ == group2_sample->v_color_idx_))
+              {
                 group2.push_back(vboxes[k]);
               }
-              else {
+              else
+              {
                 more_than_two_group = true;
                 break;
               }
@@ -491,41 +551,52 @@ struct Box
           if (more_than_two_group)
             continue;
 
-          if (!group2_sample) {
+          if (!group2_sample)
+          {
             cout << __LINE__ << ": return false" << endl;
             return false;
           }
 
           Box* bb = NULL;
-          if (group1_sample.HasColor() && !group2_sample->HasColor()) {
+          if (group1_sample.HasColor() && !group2_sample->HasColor())
+          {
             group2_sample->GetVirtualColor().SetImpossibleColor(group1_sample.color_);
           }
-          else if (group2_sample->HasColor() && !group1_sample.HasColor()) {
+          else if (group2_sample->HasColor() && !group1_sample.HasColor())
+          {
             group1_sample.GetVirtualColor().SetImpossibleColor(group2_sample->color_);
           }
 
-          for (int g1_index = 0; g1_index < group1.size(); ++g1_index) {
+          for (int g1_index = 0; g1_index < group1.size(); ++g1_index)
+          {
             Box& g1_box = Get(group1[g1_index]);
-            for (int g2_index = 0; g2_index < group2.size(); ++g2_index) {
+            for (int g2_index = 0; g2_index < group2.size(); ++g2_index)
+            {
               Box& g2_box = Get(group2[g2_index]);
               g1_box.enemies_.push_back(group2[g2_index]);
               g2_box.enemies_.push_back(group1[g1_index]);
             }
           }
 
-          if (group2.size() == 1) {
+          if (group2.size() == 1)
+          {
             bb = group2_sample;
           }
-          else if (group1.size() == 1) {
+          else if (group1.size() == 1)
+          {
             bb = &group1_sample;
           }
 
-          if (bb != NULL && bb->NeedFriendNum()) {
+          if (bb != NULL && bb->NeedFriendNum())
+          {
             vector<BoxIndex> maybe_friends;
-            for (int ii = 0; ii < bb->neighbors_.size(); ++ii) {
+            for (int ii = 0; ii < bb->neighbors_.size(); ++ii)
+            {
               bool in = false;
-              for (int jj = 0; jj < vboxes.size(); ++jj) {
-                if (bb->neighbors_[ii] == vboxes[jj]) {
+              for (int jj = 0; jj < vboxes.size(); ++jj)
+              {
+                if (bb->neighbors_[ii] == vboxes[jj])
+                {
                   in = true;
                   break;
                 }
@@ -537,13 +608,17 @@ struct Box
                 maybe_friends.push_back(bb->neighbors_[ii]);
             }
 
-            if (maybe_friends.size() < bb->NeedFriendNum()) {
+            if (maybe_friends.size() < bb->NeedFriendNum())
+            {
               cout << __LINE__ << ": return false" << endl;
               return false;
             }
-            else if (maybe_friends.size() == bb->NeedFriendNum()) {
-              for (int ii = 0; ii < maybe_friends.size(); ++ii) {
-                if (!MakeFriend(bb->index_, maybe_friends[ii])) {
+            else if (maybe_friends.size() == bb->NeedFriendNum())
+            {
+              for (int ii = 0; ii < maybe_friends.size(); ++ii)
+              {
+                if (!MakeFriend(bb->index_, maybe_friends[ii]))
+                {
                   cout << __LINE__ << ": return false" << endl;
                   return false;
                 }
@@ -665,10 +740,6 @@ int Box::VirtualColor::g_color_num = 0;
 vector<int> Box::VirtualColor::g_color_status;
 vector<vector<Box> > Box::g_boxes;
 vector<Box::VirtualColor> Box::g_virtualcolors;
-
-
-
-
 
 
 int main(int argc, char const *argv[])
