@@ -25,7 +25,9 @@ struct Box
   {
     BoxIndex(): x_(0), y_(0) { };
     BoxIndex(char x, char y): x_(x), y_(y) { };
-    inline bool operator==(const BoxIndex& index) const { return x_ == index.x_ && y_ == index.y_; }
+    inline bool operator==(const BoxIndex& index) const {
+      return x_ == index.x_ && y_ == index.y_;
+    }
     char x_, y_;
   };
 
@@ -145,7 +147,7 @@ struct Box
   Box() { }
 
   Box(char x, char y, char clr):
-  index_(x, y), is_end_(false), color_(clr), v_color_idx_(-1)
+    index_(x, y), is_end_(false), color_(clr), v_color_idx_(-1)
   {
     neighbors_.reserve(4);
     friends_.reserve(2);
@@ -469,191 +471,191 @@ struct Box
             if ((b.color_ && b.color_ == group1_sample.color_)
                 || (b.v_color_idx_ != -1 && b.v_color_idx_ == group1_sample.v_color_idx_)) {
               group1.push_back(vboxes[k]);
-          }
-          else if (!group2_sample) {
-            group2.push_back(vboxes[k]);
-            group2_sample = &Get(vboxes[k]);
-          }
-          else {
-            if ((b.color_ && b.color_ == group2_sample->color_)
-                || (b.v_color_idx_ != -1 && b.v_color_idx_ == group2_sample->v_color_idx_)) {
+            }
+            else if (!group2_sample) {
               group2.push_back(vboxes[k]);
-          }
-          else {
-            more_than_two_group = true;
-            break;
-          }
-        }
-      }
-
-      if (more_than_two_group)
-        continue;
-
-      if (!group2_sample) {
-        cout << __LINE__ << ": return false" << endl;
-        return false;
-      }
-
-      Box* bb = NULL;
-      if (group1_sample.HasColor() && !group2_sample->HasColor()) {
-        group2_sample->GetVirtualColor().SetImpossibleColor(group1_sample.color_);
-      }
-      else if (group2_sample->HasColor() && !group1_sample.HasColor()) {
-        group1_sample.GetVirtualColor().SetImpossibleColor(group2_sample->color_);
-      }
-
-      for (int g1_index = 0; g1_index < group1.size(); ++g1_index) {
-        Box& g1_box = Get(group1[g1_index]);
-        for (int g2_index = 0; g2_index < group2.size(); ++g2_index) {
-          Box& g2_box = Get(group2[g2_index]);
-          g1_box.enemies_.push_back(group2[g2_index]);
-          g2_box.enemies_.push_back(group1[g1_index]);
-        }
-      }
-
-      if (group2.size() == 1) {
-        bb = group2_sample;
-      }
-      else if (group1.size() == 1) {
-        bb = &group1_sample;
-      }
-
-      if (bb != NULL && bb->NeedFriendNum()) {
-        vector<BoxIndex> maybe_friends;
-        for (int ii = 0; ii < bb->neighbors_.size(); ++ii) {
-          bool in = false;
-          for (int jj = 0; jj < vboxes.size(); ++jj) {
-            if (bb->neighbors_[ii] == vboxes[jj]) {
-              in = true;
-              break;
+              group2_sample = &Get(vboxes[k]);
+            }
+            else {
+              if ((b.color_ && b.color_ == group2_sample->color_)
+                  || (b.v_color_idx_ != -1 && b.v_color_idx_ == group2_sample->v_color_idx_)) {
+                group2.push_back(vboxes[k]);
+              }
+              else {
+                more_than_two_group = true;
+                break;
+              }
             }
           }
 
-          if (in)
+          if (more_than_two_group)
             continue;
-          else
-            maybe_friends.push_back(bb->neighbors_[ii]);
-        }
 
-        if (maybe_friends.size() < bb->NeedFriendNum()) {
-          cout << __LINE__ << ": return false" << endl;
-          return false;
-        }
-        else if (maybe_friends.size() == bb->NeedFriendNum()) {
-          for (int ii = 0; ii < maybe_friends.size(); ++ii) {
-            if (!MakeFriend(bb->index_, maybe_friends[ii])) {
+          if (!group2_sample) {
+            cout << __LINE__ << ": return false" << endl;
+            return false;
+          }
+
+          Box* bb = NULL;
+          if (group1_sample.HasColor() && !group2_sample->HasColor()) {
+            group2_sample->GetVirtualColor().SetImpossibleColor(group1_sample.color_);
+          }
+          else if (group2_sample->HasColor() && !group1_sample.HasColor()) {
+            group1_sample.GetVirtualColor().SetImpossibleColor(group2_sample->color_);
+          }
+
+          for (int g1_index = 0; g1_index < group1.size(); ++g1_index) {
+            Box& g1_box = Get(group1[g1_index]);
+            for (int g2_index = 0; g2_index < group2.size(); ++g2_index) {
+              Box& g2_box = Get(group2[g2_index]);
+              g1_box.enemies_.push_back(group2[g2_index]);
+              g2_box.enemies_.push_back(group1[g1_index]);
+            }
+          }
+
+          if (group2.size() == 1) {
+            bb = group2_sample;
+          }
+          else if (group1.size() == 1) {
+            bb = &group1_sample;
+          }
+
+          if (bb != NULL && bb->NeedFriendNum()) {
+            vector<BoxIndex> maybe_friends;
+            for (int ii = 0; ii < bb->neighbors_.size(); ++ii) {
+              bool in = false;
+              for (int jj = 0; jj < vboxes.size(); ++jj) {
+                if (bb->neighbors_[ii] == vboxes[jj]) {
+                  in = true;
+                  break;
+                }
+              }
+
+              if (in)
+                continue;
+              else
+                maybe_friends.push_back(bb->neighbors_[ii]);
+            }
+
+            if (maybe_friends.size() < bb->NeedFriendNum()) {
               cout << __LINE__ << ": return false" << endl;
               return false;
             }
+            else if (maybe_friends.size() == bb->NeedFriendNum()) {
+              for (int ii = 0; ii < maybe_friends.size(); ++ii) {
+                if (!MakeFriend(bb->index_, maybe_friends[ii])) {
+                  cout << __LINE__ << ": return false" << endl;
+                  return false;
+                }
+              }
+              changed = true;
+            }
           }
-          changed = true;
         }
       }
-    }
-  }
 
-}  // while (changed)
-return true;
-}
-
-static ostream& PrintStat(ostream& o)
-{
-  o << "Box:" << endl;
-  for (int i = 0; i < g_boxes.size(); ++i)
-  {
-    vector<Box>& vboxes = g_boxes[i];
-    for (int j = 0; j < vboxes.size(); ++j)
-    {
-      o << "\t";
-      if (vboxes[j].color_)
-        o << (int)vboxes[j].color_;
-      else
-        o << "(" << (int)vboxes[j].v_color_idx_ << ")";
-    }
-    o << "\n";
-  }
-
-  return o;
-}
-
-static bool Search(int i)
-{
-  if (i >= g_virtualcolors.size())
-  {
-    cout << __LINE__ << ": return false" << endl;
-    return false;
-  }
-
-  if (MakeStable() == false)
-  {
-    cout << __LINE__ << ": return false" << endl;
-    return false;
-  }
-  PrintStat(cout);
-  if (IsOk())
-  {
-    cout << __LINE__ << ": return true" << endl;
+    }  // while (changed)
     return true;
   }
 
-  for (; i < g_virtualcolors.size(); ++i)
+  static ostream& PrintStat(ostream& o)
   {
-    VirtualColor& vc = g_virtualcolors[i];
-    if (vc.box_indexes_.empty())
+    o << "Box:" << endl;
+    for (int i = 0; i < g_boxes.size(); ++i)
     {
-      continue;
-    }
-
-    set<char> possbile_colors = vc.possible_colors_;
-    for (
-         set<char>::iterator iter = possbile_colors.begin();
-         iter != possbile_colors.end();
-         ++iter)
-    {
-      if (VirtualColor::g_color_status[*iter])
+      vector<Box>& vboxes = g_boxes[i];
+      for (int j = 0; j < vboxes.size(); ++j)
       {
-        cout << "Guessing " << "( " << i << " )" << "color is " << (int)*iter << endl;
-        vector<vector<Box> > temp_boxes = g_boxes;
-        vector<VirtualColor> temp_vc = g_virtualcolors;
-        vector<int> temp_color_status = VirtualColor::g_color_status;
-
-        vc.ChangeToRealColor(*iter);
-
-        if (Search(i+1))
-        {
-          cout << __LINE__ << ": return true" << endl;
-          return true;
-        }
+        o << "\t";
+        if (vboxes[j].color_)
+          o << (int)vboxes[j].color_;
         else
-        {
-          cout << "Guessing " << "( " << i  << " )" << "color is " << (int)*iter << " failed."<< endl;
-        }
-
-        g_boxes = temp_boxes;
-        g_virtualcolors = temp_vc;
-        VirtualColor::g_color_status = temp_color_status;
+          o << "(" << (int)vboxes[j].v_color_idx_ << ")";
       }
+      o << "\n";
     }
-    break;
+
+    return o;
   }
-  return false;
-}
 
-BoxIndex index_;
-bool is_end_;
-char color_;
-char v_color_idx_;
+  static bool Search(int i)
+  {
+    if (i >= g_virtualcolors.size())
+    {
+      cout << __LINE__ << ": return false" << endl;
+      return false;
+    }
 
-vector<BoxIndex> neighbors_;
-vector<BoxIndex> friends_;
-vector<BoxIndex> enemies_;
+    if (MakeStable() == false)
+    {
+      cout << __LINE__ << ": return false" << endl;
+      return false;
+    }
+    PrintStat(cout);
+    if (IsOk())
+    {
+      cout << __LINE__ << ": return true" << endl;
+      return true;
+    }
+
+    for (; i < g_virtualcolors.size(); ++i)
+    {
+      VirtualColor& vc = g_virtualcolors[i];
+      if (vc.box_indexes_.empty())
+      {
+        continue;
+      }
+
+      set<char> possbile_colors = vc.possible_colors_;
+      for (
+        set<char>::iterator iter = possbile_colors.begin();
+        iter != possbile_colors.end();
+        ++iter)
+      {
+        if (VirtualColor::g_color_status[*iter])
+        {
+          cout << "Guessing " << "( " << i << " )" << "color is " << (int)*iter << endl;
+          vector<vector<Box> > temp_boxes = g_boxes;
+          vector<VirtualColor> temp_vc = g_virtualcolors;
+          vector<int> temp_color_status = VirtualColor::g_color_status;
+
+          vc.ChangeToRealColor(*iter);
+
+          if (Search(i+1))
+          {
+            cout << __LINE__ << ": return true" << endl;
+            return true;
+          }
+          else
+          {
+            cout << "Guessing " << "( " << i  << " )" << "color is " << (int)*iter << " failed."<< endl;
+          }
+
+          g_boxes = temp_boxes;
+          g_virtualcolors = temp_vc;
+          VirtualColor::g_color_status = temp_color_status;
+        }
+      }
+      break;
+    }
+    return false;
+  }
+
+  BoxIndex index_;
+  bool is_end_;
+  char color_;
+  int v_color_idx_;
+
+  vector<BoxIndex> neighbors_;
+  vector<BoxIndex> friends_;
+  vector<BoxIndex> enemies_;
 
 
   // global variables
 
-static int g_width, g_height;
-static vector<vector<Box> > g_boxes;
-static vector<VirtualColor> g_virtualcolors;
+  static int g_width, g_height;
+  static vector<vector<Box> > g_boxes;
+  static vector<VirtualColor> g_virtualcolors;
 };
 
 
